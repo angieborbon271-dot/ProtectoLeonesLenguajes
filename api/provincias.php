@@ -37,7 +37,7 @@ if ($method === 'POST') {
     $cod_provincia = $data['cod_provincia'] ?? null;
     $nombre        = $data['nombre_provincia'] ?? null;
 
-    //insertar distrito 
+    //insertar provincia
     if ($accion === 'crear') {
         $sql = "BEGIN insertar_provincia(:p_cod_provincia,
                                         :p_nombre); 
@@ -60,10 +60,10 @@ if ($method === 'POST') {
     //actualizar 
     if ($accion === 'actualizar') {
 
-        if (!$cod_distrito) {
+        if (!$cod_provincia) {
             http_response_code(400);
-            echo json_encode(["ok" => false, "mensaje" => "Falta el codigo del distrito para actualizar"]);
-            exit;
+            echo json_encode(["ok" => false, "mensaje" => "Falta el código de la provincia para actualizar"]);
+            exit;a
         }
 
         $sql = "BEGIN actualizar_provincia(:p_cod_provincia,
