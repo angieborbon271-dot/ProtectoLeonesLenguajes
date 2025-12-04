@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Función para cargar las provincias
     async function cargarProvincias() {
         try {
-            const response = await fetch('../provincias.php');
+            const response = await fetch('api/provincias.php');
             if (!response.ok) {
                 throw new Error('Error al cargar las provincias');
             }
@@ -64,8 +64,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             const url = codProvincia 
-                ? `../provincias.php?id=${codProvincia}`
-                : '../provincias.php';
+                ? `api/provincias.php?id=${codProvincia}`
+                : 'api/provincias.php';
             
             const method = codProvincia ? 'PUT' : 'POST';
             
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Función para editar una provincia
     window.editarProvincia = async function(codProvincia) {
         try {
-            const response = await fetch(`../provincias.php?id=${codProvincia}`);
+            const response = await fetch(`api/provincias.php?id=${codProvincia}`);
             if (!response.ok) {
                 throw new Error('Error al cargar la provincia');
             }
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
-            const response = await fetch(`../provincias.php?id=${codProvincia}`, {
+            const response = await fetch(`api/provincias.php?id=${codProvincia}`, {
                 method: 'DELETE'
             });
 

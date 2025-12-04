@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Cargar la lista de actividades
 async function cargarActividades() {
     try {
-        const response = await fetch('actividades.php');
+        const response = await fetch('../api/actividades.php');
         if (!response.ok) throw new Error('Error al cargar las actividades');
         
         actividades = await response.json();
@@ -50,7 +50,7 @@ async function cargarActividades() {
 // Cargar tipos de actividad para el select
 async function cargarTiposActividad() {
     try {
-        const response = await fetch('tipos_actividad.php');
+        const response = await fetch('../api/tipos_actividad.php');
         if (!response.ok) throw new Error('Error al cargar los tipos de actividad');
         
         const tipos = await response.json();
@@ -77,7 +77,7 @@ async function cargarTiposActividad() {
 // Cargar socios para el select de responsable
 async function cargarSocios() {
     try {
-        const response = await fetch('socios.php?activos=1');
+        const response = await fetch('../api/socios.php?activos=1');
         if (!response.ok) throw new Error('Error al cargar los socios');
         
         const socios = await response.json();
@@ -155,7 +155,7 @@ function mostrarActividades(actividades) {
 // Cargar datos de una actividad para edición
 async function cargarActividad(id) {
     try {
-        const response = await fetch(`actividades.php?id=${id}`);
+        const response = await fetch(`../api/actividades.php?id=${id}`);
         if (!response.ok) throw new Error('Error al cargar la actividad');
         
         const actividad = await response.json();
@@ -203,9 +203,8 @@ async function guardarActividad() {
     };
     
     try {
-        let response;
         let method;
-        let url = 'actividades.php';
+        let url = '../api/actividades.php';
         
         if (modoEdicion && actividadActualId) {
             // Actualizar actividad existente
@@ -216,7 +215,7 @@ async function guardarActividad() {
             method = 'POST';
         }
         
-        response = await fetch(url, {
+        const response = await fetch(url, {
             method: method,
             headers: {
                 'Content-Type': 'application/json'
@@ -270,7 +269,7 @@ function confirmarEliminarActividad(id = null) {
 // Eliminar una actividad
 async function eliminarActividad(id) {
     try {
-        const response = await fetch(`actividades.php?id=${id}`, {
+        const response = await fetch(`../api/actividades.php?id=${id}`, {
             method: 'DELETE'
         });
         

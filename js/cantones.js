@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Función para cargar las provincias en el select
     async function cargarProvincias() {
         try {
-            const response = await fetch('../provincias.php');
+            const response = await fetch('../api/provincias.php');
             if (!response.ok) {
                 throw new Error('Error al cargar las provincias');
             }
@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Función para cargar los cantones
     async function cargarCantones() {
         try {
-            const response = await fetch('../cantones.php');
+            const response = await fetch('../api/cantones.php');
             if (!response.ok) {
                 throw new Error('Error al cargar los cantones');
             }
@@ -95,8 +95,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             const url = codCanton 
-                ? `../cantones.php?id=${codCanton}`
-                : '../cantones.php';
+                ? `/api/cantones.php?id=${codCanton}`
+                : '/api/cantones.php';
             
             const method = codCanton ? 'PUT' : 'POST';
             
@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Función para editar un cantón
     window.editarCanton = async function(codCanton) {
         try {
-            const response = await fetch(`../cantones.php?id=${codCanton}`);
+            const response = await fetch(`../api/cantones.php?id=${codCanton}`);
             if (!response.ok) {
                 throw new Error('Error al cargar el cantón');
             }
@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
-            const response = await fetch(`../cantones.php?id=${codCanton}`, {
+            const response = await fetch(`../api/cantones.php?id=${codCanton}`, {
                 method: 'DELETE'
             });
 
