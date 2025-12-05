@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load socios
     async function cargarSocios() {
         try {
-            const response = await fetch('../socios.php');
+            const response = await fetch('../api/socios.php');
             if (!response.ok) {
                 throw new Error('Error al cargar los socios');
             }
@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
-            const url = modoEdicion ? `../socios.php?id=${idSocio.value}` : '../socios.php';
+            const url = modoEdicion ? `../api/socios.php?id=${idSocio.value}` : '../api/socios.php';
             const method = modoEdicion ? 'PUT' : 'POST';
             
             const response = await fetch(url, {
@@ -214,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
-            const response = await fetch(`../socios.php?id=${id}`, {
+            const response = await fetch(`../api/socios.php?id=${id}`, {
                 method: 'DELETE'
             });
 
@@ -239,7 +239,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load tipos de socio
     async function cargarTiposSocio() {
         try {
-            const response = await fetch('../tipos_socio.php');
+            const response = await fetch('../api/tipos_socio.php');
             if (!response.ok) {
                 throw new Error('Error al cargar los tipos de socio');
             }
@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load estados de socio
     async function cargarEstadosSocio() {
         try {
-            const response = await fetch('../estados_socio.php');
+            const response = await fetch('../api/estados_socio.php');
             if (!response.ok) {
                 throw new Error('Error al cargar los estados de socio');
             }
@@ -283,7 +283,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load distritos
     async function cargarDistritos() {
         try {
-            const response = await fetch('../distritos.php');
+            const response = await fetch('../api/distritos.php');
             if (!response.ok) {
                 throw new Error('Error al cargar los distritos');
             }
