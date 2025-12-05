@@ -1,4 +1,4 @@
-const API_BASE = './api'; //Se tiene que cambiar si los HTML llegan a tener su propia carpeta como se hablo en la reunion del 1/12/25 
+const API_BASE = '../api';
 
 const provinciaSelect = document.getElementById('id_provincia');
 const cantonSelect = document.getElementById('id_canton');

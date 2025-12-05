@@ -63,7 +63,7 @@ if ($method === 'POST') {
         if (!$cod_provincia) {
             http_response_code(400);
             echo json_encode(["ok" => false, "mensaje" => "Falta el código de la provincia para actualizar"]);
-            exit;a
+            exit;
         }
 
         $sql = "BEGIN actualizar_provincia(:p_cod_provincia,
