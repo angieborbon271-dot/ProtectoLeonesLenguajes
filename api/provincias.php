@@ -39,13 +39,17 @@ if ($method === 'POST') {
 
     //insertar provincia
     if ($accion === 'crear') {
-        $sql = "BEGIN insertar_provincia(:p_cod_provincia,
-                                        :p_nombre); 
-                END;";
+
+        if (!$nombre) {
+            http_response_code(400);
+            echo json_encode(["ok" => false, "mensaje" => "Falta el nombre de la provincia"]);
+            exit;
+        }
+
+        $sql = "BEGIN insertar_provincia(:p_nombre_provincia); END;";
 
         $stid = oci_parse($conn, $sql);
-        oci_bind_by_name($stid, ":p_cod_provincia", $cod_provincia);
-        oci_bind_by_name($stid, ":p_nombre", $nombre);
+        oci_bind_by_name($stid, ":p_nombre_provincia", $nombre);
 
         if (!oci_execute($stid)) {
             $e = oci_error($stid);
