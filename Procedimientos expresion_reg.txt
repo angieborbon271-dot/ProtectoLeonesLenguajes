@@ -1,0 +1,143 @@
+--Insertar socio revisando que el correo sea válido
+CREATE OR REPLACE PROCEDURE insertar_socio_con_regex (
+    p_nombre_socio      IN SOCIOS.nombre_socio%TYPE,
+    p_fecha_nacimiento  IN SOCIOS.fecha_nacimiento%TYPE,
+    p_fecha_ingreso     IN SOCIOS.fecha_ingreso%TYPE,
+    p_numero_socio      IN SOCIOS.número_socio%TYPE,
+    p_cod_distrito      IN SOCIOS.cod_distrito%TYPE,
+    p_desc_direccion    IN SOCIOS.desc_direccion%TYPE,
+    p_telefono1         IN SOCIOS.telefono1%TYPE,
+    p_telefono2         IN SOCIOS.telefono2%TYPE,
+    p_tipo_socio        IN SOCIOS.tipo_socio%TYPE DEFAULT 'R',
+    p_estado_socio      IN SOCIOS.estado_socio%TYPE DEFAULT 'A',
+    p_email             IN VARCHAR2
+)
+IS
+BEGIN
+    -- Validar email con expresión regular
+    IF NOT REGEXP_LIKE(p_email, '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$') THEN
+        RAISE_APPLICATION_ERROR(-20200, 'Formato de correo electrónico inválido.');
+    END IF;
+
+    INSERT INTO SOCIOS (
+        nombre_socio, fecha_nacimiento, fecha_ingreso, número_socio,
+        cod_distrito, desc_direccion, telefono1, telefono2,
+        tipo_socio, estado_socio
+    )
+    VALUES (
+        p_nombre_socio, p_fecha_nacimiento, p_fecha_ingreso, p_numero_socio,
+        p_cod_distrito, p_desc_direccion, p_telefono1, p_telefono2,
+        p_tipo_socio, p_estado_socio
+    );
+
+    COMMIT;
+END insertar_socio_con_regex;
+/
+
+--Insrtar provincia revisando que solamente tenga letras y espacios en el nombre
+CREATE OR REPLACE PROCEDURE insertar_provincia_regex (
+    p_nombre_provincia IN PROVINCIAS.nombre_provincia%TYPE
+)
+IS
+BEGIN
+    IF NOT REGEXP_LIKE(p_nombre_provincia, '^[[:alpha:] ]+$') THEN
+        RAISE_APPLICATION_ERROR(-20201, 'El nombre de la provincia debe contener solo letras y espacios.');
+    END IF;
+
+    INSERT INTO PROVINCIAS (nombre_provincia)
+    VALUES (p_nombre_provincia);
+
+    COMMIT;
+END insertar_provincia_regex;
+/
+
+--Validar que al insertar en tabla bancos el teléfono tenga 8 dígitos
+CREATE OR REPLACE PROCEDURE insertar_banco_regex (
+    p_nombre_banco     IN BANCOS.nombre_banco%TYPE,
+    p_tel_banco1       IN BANCOS.tel_banco1%TYPE,
+    p_tel_banco2       IN BANCOS.tel_banco2%TYPE,
+    p_contacto_banco1  IN BANCOS.contacto_banco1%TYPE,
+    p_contacto_banco2  IN BANCOS.contacto_banco2%TYPE
+)
+IS
+BEGIN
+    -- Validar teléfono con regex (8 dígitos exactos)
+    IF NOT REGEXP_LIKE(p_tel_banco1, '^[0-9]{8}$') THEN
+        RAISE_APPLICATION_ERROR(-20202, 'El teléfono principal debe tener exactamente 8 dígitos.');
+    END IF;
+
+    INSERT INTO BANCOS (
+        nombre_banco, tel_banco1, tel_banco2,
+        contacto_banco1, contacto_banco2
+    )
+    VALUES (
+        p_nombre_banco, p_tel_banco1, p_tel_banco2,
+        p_contacto_banco1, p_contacto_banco2
+    );
+
+    COMMIT;
+END insertar_banco_regex;
+/
+
+--validar que al insertar en la tabla socios el teléfono sea válido
+CREATE OR REPLACE PROCEDURE insertar_socio_validando_telefono (
+    p_nombre_socio      IN SOCIOS.nombre_socio%TYPE,
+    p_fecha_nacimiento  IN SOCIOS.fecha_nacimiento%TYPE,
+    p_fecha_ingreso     IN SOCIOS.fecha_ingreso%TYPE,
+    p_numero_socio      IN SOCIOS.número_socio%TYPE,
+    p_cod_distrito      IN SOCIOS.cod_distrito%TYPE,
+    p_desc_direccion    IN SOCIOS.desc_direccion%TYPE,
+    p_telefono1         IN SOCIOS.telefono1%TYPE,
+    p_telefono2         IN SOCIOS.telefono2%TYPE DEFAULT NULL,
+    p_tipo_socio        IN SOCIOS.tipo_socio%TYPE DEFAULT 'R',
+    p_estado_socio      IN SOCIOS.estado_socio%TYPE DEFAULT 'A'
+)
+IS
+    v_distrito_existe NUMBER := 1;
+BEGIN
+    -- Validar teléfono principal: debe tener exactamente 8 dígitos
+    IF NOT REGEXP_LIKE(p_telefono1, '^[0-9]{8}$') THEN
+        RAISE_APPLICATION_ERROR(-20300, 'El teléfono principal debe tener exactamente 8 dígitos.');
+    END IF;
+
+    -- Validar teléfono secundario si se proporciona
+    IF p_telefono2 IS NOT NULL AND NOT REGEXP_LIKE(p_telefono2, '^[0-9]{8}$') THEN
+        RAISE_APPLICATION_ERROR(-20301, 'El teléfono secundario debe tener exactamente 8 dígitos.');
+    END IF;
+
+    -- Validar tipo de socio
+    IF p_tipo_socio NOT IN ('R','C','H','B','L') THEN
+        RAISE_APPLICATION_ERROR(-20302, 'Tipo de socio inválido. Debe ser R, C, H, B o L.');
+    END IF;
+
+    -- Validar estado del socio
+    IF p_estado_socio NOT IN ('A','I','N') THEN
+        RAISE_APPLICATION_ERROR(-20303, 'Estado de socio inválido. Debe ser A, I o N.');
+    END IF;
+
+    -- Validar existencia del distrito si se proporciona
+    IF p_cod_distrito IS NOT NULL THEN
+        SELECT COUNT(*) INTO v_distrito_existe
+        FROM DISTRITOS
+        WHERE cod_distrito = p_cod_distrito;
+
+        IF v_distrito_existe = 0 THEN
+            RAISE_APPLICATION_ERROR(-20304, 'El distrito especificado no existe.');
+        END IF;
+    END IF;
+
+    -- Insertar socio
+    INSERT INTO SOCIOS (
+        nombre_socio, fecha_nacimiento, fecha_ingreso, número_socio,
+        cod_distrito, desc_direccion, telefono1, telefono2,
+        tipo_socio, estado_socio
+    )
+    VALUES (
+        p_nombre_socio, p_fecha_nacimiento, p_fecha_ingreso, p_numero_socio,
+        p_cod_distrito, p_desc_direccion, p_telefono1, p_telefono2,
+        p_tipo_socio, p_estado_socio
+    );
+
+    COMMIT;
+END insertar_socio_validando_telefono;
+/
