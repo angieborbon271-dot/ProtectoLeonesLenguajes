@@ -36,11 +36,11 @@ if ($method === 'POST') {
 
     $data = json_decode(file_get_contents("php://input"), true);
 
-    $accion        = $data['accion'] ?? '';
+    $accion = $data['accion'] ?? '';
     $cod_distrito  = $data['cod_distrito'] ?? null;
     $cod_provincia = $data['cod_provincia'] ?? null;
-    $cod_canton    = $data['cod_canton'] ?? null;
-    $nombre        = $data['nombre_distrito'] ?? null;
+    $cod_canton = $data['cod_canton'] ?? null;
+    $nombre = $data['nombre_distrito'] ?? null;
 
     //insertar distrito 
     if ($accion === 'crear') {

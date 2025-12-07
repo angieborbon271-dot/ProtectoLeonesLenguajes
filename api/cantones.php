@@ -46,9 +46,9 @@ switch ($method) {
 
         while ($row = oci_fetch_assoc($stid)) {
             $cantones[] = [
-                'cod_canton'      => $row['COD_CANTON'],
-                'nombre_canton'   => $row['NOMBRE_CANTON'],
-                'cod_provincia'   => $row['COD_PROVINCIA'],
+                'cod_canton' => $row['COD_CANTON'],
+                'nombre_canton' => $row['NOMBRE_CANTON'],
+                'cod_provincia' => $row['COD_PROVINCIA'],
                 'nombre_provincia' => $row['NOMBRE_PROVINCIA']
             ];
         }

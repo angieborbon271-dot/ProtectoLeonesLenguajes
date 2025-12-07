@@ -10,7 +10,7 @@ $conn   = getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
-    // LISTAR Cuentas Bancarias (con nombre de banco)
+    // LISTAR Cuentas Bancarias
     $sql = "SELECT c.id_cuenta_bco,
                    c.nombre_cuenta_bco,
                    c.id_banco,
@@ -28,7 +28,7 @@ if ($method === 'GET') {
         $e = oci_error($stid);
         http_response_code(500);
         echo json_encode([
-            "ok"      => false,
+            "ok" => false,
             "mensaje" => $e['message']
         ]);
         exit;
@@ -46,13 +46,13 @@ if ($method === 'GET') {
 if ($method === 'POST') {
     $data = json_decode(file_get_contents("php://input"), true);
 
-    $accion            = $data['accion']            ?? '';
-    $id_cuenta_bco     = $data['id_cuenta_bco']     ?? null;
+    $accion = $data['accion'] ?? '';
+    $id_cuenta_bco = $data['id_cuenta_bco'] ?? null;
     $nombre_cuenta_bco = $data['nombre_cuenta_bco'] ?? null;
-    $id_banco          = $data['id_banco']          ?? null;
+    $id_banco  = $data['id_banco']  ?? null;
     $moneda_cuenta_bco = $data['moneda_cuenta_bco'] ?? 'C';
-    $fec_corte         = $data['fec_corte']         ?? null;
-    $saldo_corte       = $data['saldo_corte']       ?? null;
+    $fec_corte = $data['fec_corte'] ?? null;
+    $saldo_corte = $data['saldo_corte'] ?? null;
 
     // Normalizar vacíos
     if ($fec_corte === '')  $fec_corte  = null;
@@ -81,21 +81,21 @@ if ($method === 'POST') {
 
         $stid = oci_parse($conn, $sql);
         oci_bind_by_name($stid, ":p_nombre_cuenta_bco", $nombre_cuenta_bco);
-        oci_bind_by_name($stid, ":p_id_banco",          $id_banco);
+        oci_bind_by_name($stid, ":p_id_banco", $id_banco);
         oci_bind_by_name($stid, ":p_moneda_cuenta_bco", $moneda_cuenta_bco);
-        oci_bind_by_name($stid, ":p_fec_corte",         $fec_corte);
-        oci_bind_by_name($stid, ":p_saldo_corte",       $saldo_corte);
+        oci_bind_by_name($stid, ":p_fec_corte", $fec_corte);
+        oci_bind_by_name($stid, ":p_saldo_corte", $saldo_corte);
 
         if (!@oci_execute($stid)) {
             $e = oci_error($stid);
             http_response_code(400);
             echo json_encode([
-                "ok"      => false,
+                "ok" => false,
                 "mensaje" => $e['message']
             ]);
         } else {
             echo json_encode([
-                "ok"      => true,
+                "ok" => true,
                 "mensaje" => "Cuenta bancaria agregada correctamente"
             ]);
         }
@@ -108,7 +108,7 @@ if ($method === 'POST') {
         if (!$id_cuenta_bco) {
             http_response_code(400);
             echo json_encode([
-                "ok"      => false,
+                "ok" => false,
                 "mensaje" => "Falta el id de la cuenta bancaria para actualizar"
             ]);
             exit;
@@ -117,7 +117,7 @@ if ($method === 'POST') {
         if (!$nombre_cuenta_bco || !$id_banco || !$moneda_cuenta_bco) {
             http_response_code(400);
             echo json_encode([
-                "ok"      => false,
+                "ok" => false,
                 "mensaje" => "Nombre de cuenta, banco y moneda son obligatorios"
             ]);
             exit;
@@ -134,23 +134,23 @@ if ($method === 'POST') {
 
 
         $stid = oci_parse($conn, $sql);
-        oci_bind_by_name($stid, ":p_id_cuenta_bco",     $id_cuenta_bco);
+        oci_bind_by_name($stid, ":p_id_cuenta_bco", $id_cuenta_bco);
         oci_bind_by_name($stid, ":p_nombre_cuenta_bco", $nombre_cuenta_bco);
-        oci_bind_by_name($stid, ":p_id_banco",          $id_banco);
+        oci_bind_by_name($stid, ":p_id_banco",  $id_banco);
         oci_bind_by_name($stid, ":p_moneda_cuenta_bco", $moneda_cuenta_bco);
-        oci_bind_by_name($stid, ":p_fec_corte",         $fec_corte);
-        oci_bind_by_name($stid, ":p_saldo_corte",       $saldo_corte);
+        oci_bind_by_name($stid, ":p_fec_corte", $fec_corte);
+        oci_bind_by_name($stid, ":p_saldo_corte", $saldo_corte);
 
         if (!@oci_execute($stid)) {
             $e = oci_error($stid);
             http_response_code(400);
             echo json_encode([
-                "ok"      => false,
+                "ok" => false,
                 "mensaje" => $e['message']
             ]);
         } else {
             echo json_encode([
-                "ok"      => true,
+                "ok" => true,
                 "mensaje" => "Cuenta bancaria actualizada correctamente"
             ]);
         }
@@ -163,7 +163,7 @@ if ($method === 'POST') {
         if (!$id_cuenta_bco) {
             http_response_code(400);
             echo json_encode([
-                "ok"      => false,
+                "ok" => false,
                 "mensaje" => "Falta el id de la cuenta bancaria para eliminar"
             ]);
             exit;
@@ -178,12 +178,12 @@ if ($method === 'POST') {
             $e = oci_error($stid);
             http_response_code(400);
             echo json_encode([
-                "ok"      => false,
+                "ok" => false,
                 "mensaje" => $e['message']
             ]);
         } else {
             echo json_encode([
-                "ok"      => true,
+                "ok" => true,
                 "mensaje" => "Cuenta bancaria eliminada correctamente"
             ]);
         }

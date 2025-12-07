@@ -8,7 +8,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 $id_actividad = isset($_GET['id']) ? $_GET['id'] : null;
 
 try {
-    $conn = getDBConnection();
+    $conn =  getConnection();
     
     switch ($method) {
         case 'GET':
