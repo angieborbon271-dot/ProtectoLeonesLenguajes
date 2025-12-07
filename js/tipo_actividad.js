@@ -88,7 +88,16 @@ async function guardarTipoActividad(e) {
             body: JSON.stringify(payload)
         });
 
-        const respuesta = await res.json();
+        const raw = await res.text();
+        let respuesta;
+
+        try {
+            respuesta = JSON.parse(raw);
+        } catch (e) {
+            console.error('La respuesta del servidor NO es JSON. Texto recibido:', raw);
+            throw new Error('Respuesta no válida del servidor (no es JSON). Revisa la consola del navegador.');
+        }
+
         if (!res.ok || respuesta.ok === false) {
             throw new Error(respuesta.mensaje || 'Error al guardar tipo de actividad');
         }

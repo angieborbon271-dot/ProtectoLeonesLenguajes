@@ -36,29 +36,38 @@ if ($method === 'POST') {
 
     $data = json_decode(file_get_contents("php://input"), true);
 
-    $accion          = $data['accion'] ?? '';
-    $id_banco        = $data['id_banco'] ?? null;
-    $nombre_banco    = $data['nombre_banco'] ?? null;
-    $tel_banco1      = $data['tel_banco1'] ?? null;
-    $tel_banco2      = $data['tel_banco2'] ?? null;
+    $accion          = $data['accion']          ?? '';
+    $id_banco        = $data['id_banco']        ?? null;
+    $nombre_banco    = $data['nombre_banco']    ?? null;
+    $tel_banco1      = $data['tel_banco1']      ?? null;
+    $tel_banco2      = $data['tel_banco2']      ?? null;
     $contacto_banco1 = $data['contacto_banco1'] ?? null;
     $contacto_banco2 = $data['contacto_banco2'] ?? null;
 
-    // insertar banco
+    // INSERTAR BANCO
     if ($accion === 'crear') {
-        $sql = "BEGIN insertar_banco(:p_id_banco,
-                                     :p_nombre_banco,
-                                     :p_tel_banco1,
-                                     :p_tel_banco2,
-                                     :p_contacto_banco1,
-                                     :p_contacto_banco2); 
-                END;";
+
+        if (!$nombre_banco || !$tel_banco1 || !$contacto_banco1) {
+            http_response_code(400);
+            echo json_encode([
+                "ok"      => false,
+                "mensaje" => "Nombre, Teléfono principal y Contacto principal son obligatorios"
+            ]);
+            exit;
+        }
+
+        $sql = "BEGIN insertar_banco(
+                    :p_nombre_banco,
+                    :p_tel_banco1,
+                    :p_tel_banco2,
+                    :p_contacto_banco1,
+                    :p_contacto_banco2
+                ); END;";
 
         $stid = oci_parse($conn, $sql);
-        oci_bind_by_name($stid, ":p_id_banco", $id_banco);
-        oci_bind_by_name($stid, ":p_nombre_banco", $nombre_banco);
-        oci_bind_by_name($stid, ":p_tel_banco1", $tel_banco1);
-        oci_bind_by_name($stid, ":p_tel_banco2", $tel_banco2);
+        oci_bind_by_name($stid, ":p_nombre_banco",    $nombre_banco);
+        oci_bind_by_name($stid, ":p_tel_banco1",      $tel_banco1);
+        oci_bind_by_name($stid, ":p_tel_banco2",      $tel_banco2);
         oci_bind_by_name($stid, ":p_contacto_banco1", $contacto_banco1);
         oci_bind_by_name($stid, ":p_contacto_banco2", $contacto_banco2);
 
@@ -72,7 +81,7 @@ if ($method === 'POST') {
         exit;
     }
 
-    // actualizar banco
+    // ACTUALIZAR BANCO
     if ($accion === 'actualizar') {
 
         if (!$id_banco) {
@@ -81,19 +90,29 @@ if ($method === 'POST') {
             exit;
         }
 
-        $sql = "BEGIN actualizar_banco(:p_id_banco,
-                                       :p_nombre_banco,
-                                       :p_tel_banco1,
-                                       :p_tel_banco2,
-                                       :p_contacto_banco1,
-                                       :p_contacto_banco2); 
-                END;";
+        if (!$nombre_banco || !$tel_banco1 || !$contacto_banco1) {
+            http_response_code(400);
+            echo json_encode([
+                "ok"      => false,
+                "mensaje" => "Nombre, Teléfono principal y Contacto principal son obligatorios"
+            ]);
+            exit;
+        }
+
+        $sql = "BEGIN actualizar_banco(
+                    :p_id_banco,
+                    :p_nombre_banco,
+                    :p_tel_banco1,
+                    :p_tel_banco2,
+                    :p_contacto_banco1,
+                    :p_contacto_banco2
+                ); END;";
 
         $stid = oci_parse($conn, $sql);
-        oci_bind_by_name($stid, ":p_id_banco", $id_banco);
-        oci_bind_by_name($stid, ":p_nombre_banco", $nombre_banco);
-        oci_bind_by_name($stid, ":p_tel_banco1", $tel_banco1);
-        oci_bind_by_name($stid, ":p_tel_banco2", $tel_banco2);
+        oci_bind_by_name($stid, ":p_id_banco",        $id_banco);
+        oci_bind_by_name($stid, ":p_nombre_banco",    $nombre_banco);
+        oci_bind_by_name($stid, ":p_tel_banco1",      $tel_banco1);
+        oci_bind_by_name($stid, ":p_tel_banco2",      $tel_banco2);
         oci_bind_by_name($stid, ":p_contacto_banco1", $contacto_banco1);
         oci_bind_by_name($stid, ":p_contacto_banco2", $contacto_banco2);
 
@@ -107,7 +126,7 @@ if ($method === 'POST') {
         exit;
     }
 
-    // eliminar banco
+    // ELIMINAR BANCO
     if ($accion === 'eliminar') {
 
         if (!$id_banco) {
@@ -131,7 +150,6 @@ if ($method === 'POST') {
         exit;
     }
 
-    // errores
     http_response_code(400);
     echo json_encode(["ok" => false, "mensaje" => "Acción no reconocida"]);
     exit;
