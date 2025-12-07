@@ -20,7 +20,7 @@ try {
                 $stmt = $pdo->prepare('SELECT * FROM SOCIOS WHERE id_socio = ?');
                 $stmt->execute([$id]);
                 $tipoSocio = $stmt->fetch(PDO::FETCH_ASSOC);
-                
+
                 if ($tipoSocio) {
                     echo json_encode($tipoSocio);
                 } else {
@@ -43,30 +43,30 @@ try {
                 echo json_encode($tiposSocio);
             }
             break;
-            
+
         case 'POST':
             // Crear un nuevo tipo de socio (si fuera necesario en el futuro)
             http_response_code(405); // Método no permitido
             echo json_encode(['error' => 'Método no implementado']);
             break;
-            
+
         case 'PUT':
             // Actualizar un tipo de socio (si fuera necesario en el futuro)
             http_response_code(405); // Método no permitido
             echo json_encode(['error' => 'Método no implementado']);
             break;
-            
+
         case 'DELETE':
             // Eliminar un tipo de socio (si fuera necesario en el futuro)
             http_response_code(405); // Método no permitido
             echo json_encode(['error' => 'Método no implementado']);
             break;
-            
+
         case 'OPTIONS':
             // Respuesta para preflight requests
             http_response_code(200);
             break;
-            
+
         default:
             http_response_code(405); // Método no permitido
             echo json_encode(['error' => 'Método no permitido']);

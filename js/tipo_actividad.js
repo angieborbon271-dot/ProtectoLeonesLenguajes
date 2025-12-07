@@ -1,7 +1,15 @@
-const API_BASE = './api'; // Ajustar si los HTML tienen su propia carpeta
+const API_BASE = '../api';
 
 const formTipoActividad = document.getElementById('form-tipo-actividad');
 const tbodyTiposActividad = document.getElementById('tbody-tipo-actividad');
+const inputId = document.getElementById('id_tip_actividad');
+const inputNombre = document.getElementById('nombre_tip_actividad');
+const selectTipo = document.getElementById('tipo_actividad');
+const botonGuardar = formTipoActividad.querySelector("button[type='submit']");
+
+document.addEventListener('DOMContentLoaded', () => {
+    cargarTiposActividad();
+});
 
 // listado tipos de actividad
 async function cargarTiposActividad() {
@@ -13,13 +21,29 @@ async function cargarTiposActividad() {
 
         tipos.forEach(t => {
             const tr = document.createElement('tr');
+
+            const id = t.ID_TIP_ACTIVIDAD;
+            const nombre = t.NOMBRE_TIP_ACTIVIDAD;
+            const tipo = t.TIPO_ACTIVIDAD;
+
+            let tipoTexto = '';
+            if (tipo === 'I') tipoTexto = 'Ingreso';
+            else if (tipo === 'C') tipoTexto = 'Cuota';
+            else if (tipo === 'G') tipoTexto = 'Gasto/Egreso';
+            else tipoTexto = tipo || '';
+
             tr.innerHTML = `
-                <td>${t.ID_TIP_ACTIVIDAD}</td>
-                <td>${t.NOMBRE_TIP_ACTIVIDAD}</td>
-                <td>${t.TIPO_ACTIVIDAD}</td>
+                <td>${id}</td>
+                <td>${nombre}</td>
+                <td>${tipoTexto}</td>
                 <td>
-                    <button class="btn btn-sm btn-amarillo btn-editar" data-id="${t.ID_TIP_ACTIVIDAD}">Editar</button>
-                    <button class="btn btn-sm btn-danger btn-eliminar" data-id="${t.ID_TIP_ACTIVIDAD}">Eliminar</button>
+                    <button 
+                        class="btn btn-sm btn-amarillo btn-editar"
+                        data-id="${id}"
+                        data-nombre="${nombre}"
+                        data-tipo="${tipo}"
+                    >Editar</button>
+                    <button class="btn btn-sm btn-danger btn-eliminar" data-id="${id}">Eliminar</button>
                 </td>
             `;
             tbodyTiposActividad.appendChild(tr);
@@ -32,22 +56,30 @@ async function cargarTiposActividad() {
     }
 }
 
-// CRUD crear tipo de actividad
-async function crearTipoActividad(e) {
+// CREAR / ACTUALIZAR tipo de actividad
+async function guardarTipoActividad(e) {
     e.preventDefault();
-    const nombre = document.getElementById('nombre_tip_actividad').value.trim();
-    const tipo   = document.getElementById('tipo_actividad').value.trim();
+
+    const id = inputId.value.trim();
+    const nombre = inputNombre.value.trim();
+    const tipo = selectTipo.value;
 
     if (!nombre || !tipo) {
         alert('Complete todos los campos');
         return;
     }
 
+    const accion = id ? 'actualizar' : 'crear';
+
     const payload = {
-        accion: 'crear',
+        accion,
         nombre_tip_actividad: nombre,
         tipo_actividad: tipo
     };
+
+    if (id) {
+        payload.id_tip_actividad = id;
+    }
 
     try {
         const res = await fetch(`${API_BASE}/tipo_actividad.php`, {
@@ -58,11 +90,20 @@ async function crearTipoActividad(e) {
 
         const respuesta = await res.json();
         if (!res.ok || respuesta.ok === false) {
-            throw new Error(respuesta.mensaje || 'Error al crear tipo de actividad');
+            throw new Error(respuesta.mensaje || 'Error al guardar tipo de actividad');
         }
 
-        alert(respuesta.mensaje || 'Tipo de actividad creado correctamente');
+        alert(
+            respuesta.mensaje ||
+            (id ? 'Tipo de actividad actualizado correctamente'
+                : 'Tipo de actividad creado correctamente')
+        );
+
+        // Reset form
         formTipoActividad.reset();
+        inputId.value = '';
+        botonGuardar.textContent = 'Guardar Tipo de Actividad';
+
         cargarTiposActividad();
     } catch (err) {
         console.error(err);
@@ -70,10 +111,29 @@ async function crearTipoActividad(e) {
     }
 }
 
-formTipoActividad.addEventListener('submit', crearTipoActividad);
+formTipoActividad.addEventListener('submit', guardarTipoActividad);
 
-// CRUD eliminar tipo de actividad
+// EDITAR + ELIMINAR
 function asignarEventosAcciones() {
+    // EDITAR
+    const botonesEditar = document.querySelectorAll('.btn-editar');
+    botonesEditar.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-id');
+            const nombre = btn.getAttribute('data-nombre');
+            const tipo = btn.getAttribute('data-tipo');
+
+            inputId.value = id;
+            inputNombre.value = nombre;
+            selectTipo.value = tipo;
+
+            botonGuardar.textContent = 'Actualizar Tipo de Actividad';
+
+            formTipoActividad.scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+
+    // ELIMINAR
     const botonesEliminar = document.querySelectorAll('.btn-eliminar');
     botonesEliminar.forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -106,7 +166,3 @@ function asignarEventosAcciones() {
         });
     });
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-    cargarTiposActividad();
-});
