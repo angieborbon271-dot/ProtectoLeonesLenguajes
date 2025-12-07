@@ -79,65 +79,32 @@ BEGIN
 END insertar_banco_regex;
 /
 
---validar que al insertar en la tabla socios el teléfono sea válido
-CREATE OR REPLACE PROCEDURE insertar_socio_validando_telefono (
-    p_nombre_socio      IN SOCIOS.nombre_socio%TYPE,
-    p_fecha_nacimiento  IN SOCIOS.fecha_nacimiento%TYPE,
-    p_fecha_ingreso     IN SOCIOS.fecha_ingreso%TYPE,
-    p_numero_socio      IN SOCIOS.número_socio%TYPE,
-    p_cod_distrito      IN SOCIOS.cod_distrito%TYPE,
-    p_desc_direccion    IN SOCIOS.desc_direccion%TYPE,
-    p_telefono1         IN SOCIOS.telefono1%TYPE,
-    p_telefono2         IN SOCIOS.telefono2%TYPE DEFAULT NULL,
-    p_tipo_socio        IN SOCIOS.tipo_socio%TYPE DEFAULT 'R',
-    p_estado_socio      IN SOCIOS.estado_socio%TYPE DEFAULT 'A'
+--validar que el nombre del cantón solamente tenga letras y espacios
+CREATE OR REPLACE PROCEDURE insertar_canton_regex (
+    p_cod_provincia IN CANTONES.cod_provincia%TYPE,
+    p_nombre_canton IN CANTONES.nombre_canton%TYPE
 )
 IS
-    v_distrito_existe NUMBER := 1;
+    v_provincia_existe NUMBER := 0;
 BEGIN
-    -- Validar teléfono principal: debe tener exactamente 8 dígitos
-    IF NOT REGEXP_LIKE(p_telefono1, '^[0-9]{8}$') THEN
-        RAISE_APPLICATION_ERROR(-20300, 'El teléfono principal debe tener exactamente 8 dígitos.');
+    -- Validar nombre del cantón: solo letras y espacios
+    IF NOT REGEXP_LIKE(p_nombre_canton, '^[[:alpha:] ]+$') THEN
+        RAISE_APPLICATION_ERROR(-20400, 'El nombre del cantón debe contener únicamente letras y espacios.');
     END IF;
 
-    -- Validar teléfono secundario si se proporciona
-    IF p_telefono2 IS NOT NULL AND NOT REGEXP_LIKE(p_telefono2, '^[0-9]{8}$') THEN
-        RAISE_APPLICATION_ERROR(-20301, 'El teléfono secundario debe tener exactamente 8 dígitos.');
+    -- Validar existencia de la provincia
+    SELECT COUNT(*) INTO v_provincia_existe
+    FROM PROVINCIAS
+    WHERE cod_provincia = p_cod_provincia;
+
+    IF v_provincia_existe = 0 THEN
+        RAISE_APPLICATION_ERROR(-20401, 'La provincia especificada no existe.');
     END IF;
 
-    -- Validar tipo de socio
-    IF p_tipo_socio NOT IN ('R','C','H','B','L') THEN
-        RAISE_APPLICATION_ERROR(-20302, 'Tipo de socio inválido. Debe ser R, C, H, B o L.');
-    END IF;
-
-    -- Validar estado del socio
-    IF p_estado_socio NOT IN ('A','I','N') THEN
-        RAISE_APPLICATION_ERROR(-20303, 'Estado de socio inválido. Debe ser A, I o N.');
-    END IF;
-
-    -- Validar existencia del distrito si se proporciona
-    IF p_cod_distrito IS NOT NULL THEN
-        SELECT COUNT(*) INTO v_distrito_existe
-        FROM DISTRITOS
-        WHERE cod_distrito = p_cod_distrito;
-
-        IF v_distrito_existe = 0 THEN
-            RAISE_APPLICATION_ERROR(-20304, 'El distrito especificado no existe.');
-        END IF;
-    END IF;
-
-    -- Insertar socio
-    INSERT INTO SOCIOS (
-        nombre_socio, fecha_nacimiento, fecha_ingreso, número_socio,
-        cod_distrito, desc_direccion, telefono1, telefono2,
-        tipo_socio, estado_socio
-    )
-    VALUES (
-        p_nombre_socio, p_fecha_nacimiento, p_fecha_ingreso, p_numero_socio,
-        p_cod_distrito, p_desc_direccion, p_telefono1, p_telefono2,
-        p_tipo_socio, p_estado_socio
-    );
+    -- Insertar cantón
+    INSERT INTO CANTONES (cod_provincia, nombre_canton)
+    VALUES (p_cod_provincia, p_nombre_canton);
 
     COMMIT;
-END insertar_socio_validando_telefono;
+END insertar_canton_regex;
 /
