@@ -10,24 +10,34 @@ $conn = getConnection();
 
 $method = $_SERVER['REQUEST_METHOD'];
 $id = isset($_GET['id']) ? $_GET['id'] : null;
+$cod_provincia = isset($_GET['provincia']) ? $_GET['provincia'] : null;
 
 $data = json_decode(file_get_contents('php://input'), true);
 
 
 switch ($method) {
     case 'GET':
+        //listar cantones 
         if ($id) {
             $sql = "SELECT c.cod_canton, c.nombre_canton, c.cod_provincia, p.nombre_provincia 
-                    FROM CANTONES c
-                    JOIN PROVINCIAS p ON c.cod_provincia = p.cod_provincia
-                    WHERE c.cod_canton = :id";
+                FROM CANTONES c
+                JOIN PROVINCIAS p ON c.cod_provincia = p.cod_provincia
+                WHERE c.cod_canton = :id";
             $stid = oci_parse($conn, $sql);
             oci_bind_by_name($stid, ':id', $id);
+        } else if ($cod_provincia) {
+            $sql = "SELECT c.cod_canton, c.nombre_canton, c.cod_provincia, p.nombre_provincia
+                FROM CANTONES c
+                JOIN PROVINCIAS p ON c.cod_provincia = p.cod_provincia
+                WHERE c.cod_provincia = :cod_provincia
+                ORDER BY c.nombre_canton";
+            $stid = oci_parse($conn, $sql);
+            oci_bind_by_name($stid, ':cod_provincia', $cod_provincia);
         } else {
             $sql = "SELECT c.cod_canton, c.nombre_canton, c.cod_provincia, p.nombre_provincia 
-                    FROM CANTONES c
-                    JOIN PROVINCIAS p ON c.cod_provincia = p.cod_provincia
-                    ORDER BY p.nombre_provincia, c.nombre_canton";
+                FROM CANTONES c
+                JOIN PROVINCIAS p ON c.cod_provincia = p.cod_provincia
+                ORDER BY p.nombre_provincia, c.nombre_canton";
             $stid = oci_parse($conn, $sql);
         }
 
@@ -36,9 +46,9 @@ switch ($method) {
 
         while ($row = oci_fetch_assoc($stid)) {
             $cantones[] = [
-                'cod_canton' => $row['COD_CANTON'],
-                'nombre_canton' => $row['NOMBRE_CANTON'],
-                'cod_provincia' => $row['COD_PROVINCIA'],
+                'cod_canton'      => $row['COD_CANTON'],
+                'nombre_canton'   => $row['NOMBRE_CANTON'],
+                'cod_provincia'   => $row['COD_PROVINCIA'],
                 'nombre_provincia' => $row['NOMBRE_PROVINCIA']
             ];
         }
@@ -52,6 +62,7 @@ switch ($method) {
         break;
 
     case 'POST':
+        //crar canton
         if (!empty($data['nombre_canton']) && !empty($data['cod_provincia'])) {
 
             $sql = "BEGIN insertar_canton(:p_cod_provincia, :p_nombre_canton); END;";

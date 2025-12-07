@@ -86,16 +86,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const canton = {
-            cod_canton: codCanton || null,
             nombre_canton: nombreCanton,
             cod_provincia: codProvincia
         };
-
         try {
             const url = codCanton
                 ? `${API_BASE}/cantones.php?id=${codCanton}`
                 : `${API_BASE}/cantones.php`;
-
             const method = codCanton ? 'PUT' : 'POST';
 
             const response = await fetch(url, {

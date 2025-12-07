@@ -11,13 +11,14 @@ $conn = getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
-    // LISTAR DISTRITOS (falta vista Opinion propia)
-    $sql = "SELECT cod_distrito,
-                   cod_provincia,
-                   cod_canton,
-                   nombre_distrito
-            FROM distritos
-            ORDER BY cod_distrito";
+    $sql = "SELECT d.cod_distrito,
+               d.cod_provincia,
+               d.cod_canton,
+               d.nombre_distrito,
+               c.nombre_canton
+        FROM distritos d
+        JOIN cantones c ON d.cod_canton = c.cod_canton
+        ORDER BY d.cod_distrito";
 
     $stid = oci_parse($conn, $sql);
     oci_execute($stid);
