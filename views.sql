@@ -1,0 +1,50 @@
+-- Primero damos privilegios para crear views desde usuario SYS o SYSTEM
+GRANT CREATE VIEW TO ADMLEON;
+
+
+CREATE OR REPLACE VIEW VW_ACTIVIDAD_DETALLE AS
+SELECT 
+    a.*,
+    s.NOMBRE_SOCIO AS NOMBRE_RESPONSABLE
+FROM ACTIVIDADES a
+LEFT JOIN ACTIV_SOCIO ac
+    ON a.ID_ACTIVIDAD = ac.ID_ACTIVIDAD
+LEFT JOIN SOCIOS s
+    ON ac.ID_SOCIO = s.ID_SOCIO;
+
+"""
+    SE UTILIZA EN PHP USANDO EL QUERY
+    $sql = SELECT * 
+        FROM VW_ACTIVIDAD_DETALLE
+        WHERE ID_ACTIVIDAD = :id_actividad;
+
+    $stmt = oci_parse($conn, $sql);
+    oci_bind_by_name($stmt, ':id_actividad', $id_actividad);
+    oci_execute($stmt);
+"""
+
+
+CREATE OR REPLACE VIEW VW_ACTIVIDADES_COMPLETAS AS
+SELECT 
+    a.*,
+    s.NOMBRE_SOCIO AS NOMBRE_RESPONSABLE,
+    ta.NOMBRE_ACTIVIDAD AS TIPO_ACTIVIDAD
+FROM ACTIVIDADES a
+LEFT JOIN ACTIV_SOCIO ac
+    ON a.ID_ACTIVIDAD = ac.ID_ACTIVIDAD
+LEFT JOIN SOCIOS s
+    ON ac.ID_SOCIO = s.ID_SOCIO
+LEFT JOIN TIPOS_ACTIVIDAD ta
+    ON a.ID_TIP_ACTIVIDAD = ta.ID_TIP_ACTIVIDAD
+ORDER BY a.FECHA_ACTIVIDAD DESC;
+
+"""
+    SE UTILIZA EN PHP USANDO EL QUERY
+    $sql = SELECT * 
+        FROM VW_ACTIVIDADES_COMPLETAS
+        ORDER BY FECHA_ACTIVIDAD DESC;
+
+    $stmt = oci_parse($conn, $sql);
+    oci_execute($stmt);
+
+"""

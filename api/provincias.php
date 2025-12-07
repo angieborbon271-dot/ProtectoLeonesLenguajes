@@ -20,11 +20,14 @@ if ($method === 'GET') {
     $stid = oci_parse($conn, $sql);
     oci_execute($stid);
 
-    $distritos = [];
+    $provincias = [];
     while ($row = oci_fetch_assoc($stid)) {
         $provincias[] = $row;
     }
 
+    // Depuración: Mostrar las provincias en el log del servidor
+    error_log('Provincias obtenidas: ' . print_r($provincias, true));
+    
     echo json_encode($provincias);
     exit;
 }
