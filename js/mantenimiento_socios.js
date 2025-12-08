@@ -1,283 +1,296 @@
 const API_BASE = '../api';
 
-const formSocio = document.getElementById('form-socio');
-const tbodySocios = document.getElementById('tbody-socios');
+document.addEventListener('DOMContentLoaded', function () {
+    const formSocio = document.getElementById('form-socio');
+    const tbodySocios = document.getElementById('tbody-socios');
 
-const inputId = document.getElementById('id_socio');
-const inputNombre = document.getElementById('nombre_socio');
-const inputNumSocio = document.getElementById('numero_socio');
-const inputFecNac = document.getElementById('fecha_nacimiento');
-const inputFecIng = document.getElementById('fecha_ingreso');
-const selectDistrito = document.getElementById('cod_distrito');
-const inputDir = document.getElementById('desc_direccion');
-const inputTel1 = document.getElementById('telefono1');
-const inputTel2 = document.getElementById('telefono2');
-const selectTipo = document.getElementById('tipo_socio');
-const selectEstado = document.getElementById('estado_socio');
-const btnGuardar = document.getElementById('btn-guardar');
-const btnNuevo = document.getElementById('btn-nuevo');
+    const btnGuardar = formSocio.querySelector('button[type="submit"]');
+    const btnNuevo = document.getElementById('btn-nuevo');
+    const btnEliminar = document.getElementById('btn-eliminar');
 
-document.addEventListener('DOMContentLoaded', () => {
+    const idSocio = document.getElementById('id_socio');
+    const nombreSocio = document.getElementById('nombre_socio');
+    const fechaNac = document.getElementById('fecha_nacimiento');
+    const fechaIngreso = document.getElementById('fecha_ingreso');
+    const numeroSocio = document.getElementById('numero_socio');
+    const codDistrito = document.getElementById('cod_distrito');
+    const descDireccion = document.getElementById('desc_direccion');
+    const telefono1 = document.getElementById('telefono1');
+    const telefono2 = document.getElementById('telefono2');
+    const tipoSocio = document.getElementById('tipo_socio');
+    const estadoSocio = document.getElementById('estado_socio');
+
+    let socios = [];
+
+    // helper json seguro
+    async function leerJSON(res, ctx) {
+        const txt = await res.text();
+        if (txt === '') return null;
+        try {
+            return JSON.parse(txt);
+        } catch (e) {
+            console.error('RAW (' + ctx + '):', txt);
+            throw new Error('El servidor no devolvio JSON valido');
+        }
+    }
+
+    function textoTipo(c) {
+        switch (c) {
+            case 'R': return 'Regular';
+            case 'C': return 'Cachorro';
+            case 'H': return 'Honorario';
+            case 'B': return 'Benefactor';
+            case 'L': return 'Leo';
+            default: return c || '';
+        }
+    }
+
+    function textoEstado(c) {
+        switch (c) {
+            case 'A': return 'Activo';
+            case 'I': return 'Inactivo';
+            case 'N': return 'No pertenece';
+            default: return c || '';
+        }
+    }
+
+    // init
     cargarDistritos();
     cargarSocios();
-    formSocio.addEventListener('submit', guardarSocio);
-    btnNuevo.addEventListener('click', () => {
-        formSocio.reset();
-        inputId.value = '';
-        btnGuardar.textContent = 'Guardar socio';
-        formSocio.scrollIntoView({ behavior: 'smooth' });
-    });
-});
+    configurarEventos();
+    actualizarEstadoBotones();
 
-// helper tipo socio
-function textoTipoSocio(codigo) {
-    if (codigo === 'R') return 'Regular';
-    if (codigo === 'C') return 'Cachorro';
-    if (codigo === 'H') return 'Honorario';
-    if (codigo === 'B') return 'Benefactor';
-    if (codigo === 'L') return 'Leo';
-    return codigo || '';
-}
-
-// helper estado socio
-function textoEstadoSocio(codigo) {
-    if (codigo === 'A') return 'Activo';
-    if (codigo === 'I') return 'Inactivo';
-    if (codigo === 'N') return 'No pertenece';
-    return codigo || '';
-}
-
-// validar telefonos (solo numeros, minimo 8, maximo 10)
-function validarTelefono(valor, etiqueta) {
-    if (!valor) return true;
-    const soloNums = /^[0-9]+$/;
-    if (!soloNums.test(valor)) {
-        alert(`${etiqueta}: solo se permiten numeros`);
-        return false;
-    }
-    if (valor.length < 8) {
-        alert(`${etiqueta}: el numero debe tener minimo 8 digitos`);
-        return false;
-    }
-    if (valor.length > 10) {
-        alert(`${etiqueta}: el numero debe tener maximo 10 digitos`);
-        return false;
-    }
-    return true;
-}
-
-// cargar distritos en el select
-async function cargarDistritos() {
-    try {
-        const res = await fetch(`${API_BASE}/distritos.php`);
-        if (!res.ok) throw new Error('Error al cargar distritos');
-
-        const distritos = await res.json();
-        selectDistrito.innerHTML = '<option value="">Seleccione...</option>';
-
-        distritos.forEach(d => {
-            const val = d.COD_DISTRITO || d.ID_DISTRITO || d.id_distrito;
-            const nomDist = d.NOMBRE_DISTRITO || d.nombre_distrito || '';
-            const nomCanton = d.NOMBRE_CANTON || d.nombre_canton || '';
-            if (!val) return;
-            const opt = document.createElement('option');
-            opt.value = val;
-            opt.textContent = `${nomDist}${nomCanton ? ' - ' + nomCanton : ''}`;
-            selectDistrito.appendChild(opt);
-        });
-    } catch (err) {
-        console.error(err);
-        alert('No se pudieron cargar los distritos');
-    }
-}
-
-// listar socios
-async function cargarSocios() {
-    try {
-        const res = await fetch(`${API_BASE}/socios.php`);
-        if (!res.ok) throw new Error('Error al cargar socios');
-
-        const socios = await res.json();
-        tbodySocios.innerHTML = '';
-
-        socios.forEach(s => {
-            const id = s.ID_SOCIO;
-            const nombre = s.NOMBRE_SOCIO;
-            const numSocio = s.NUMERO_SOCIO;
-            const tel1 = s.TELEFONO1;
-            const tipo = s.TIPO_SOCIO;
-            const estado = s.ESTADO_SOCIO;
-            const distrito = s.NOMBRE_DISTRITO || '';
-            const canton = s.NOMBRE_CANTON || '';
-            const provincia = s.NOMBRE_PROVINCIA || '';
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-        <td>${id}</td>
-        <td>${nombre}</td>
-        <td>${numSocio}</td>
-        <td>${tel1}</td>
-        <td>${textoTipoSocio(tipo)}</td>
-        <td>${textoEstadoSocio(estado)}</td>
-        <td>${distrito} ${canton ? ', ' + canton : ''} ${provincia ? ', ' + provincia : ''}</td>
-        <td>
-          <button class="btn btn-sm btn-amarillo btn-editar"
-            data-id="${id}"
-            data-nombre="${nombre}"
-            data-numero="${numSocio}"
-            data-fecnac="${s.FECHA_NACIMIENTO || ''}"
-            data-fecing="${s.FECHA_INGRESO || ''}"
-            data-distrito="${s.COD_DISTRITO || ''}"
-            data-dir="${s.DESC_DIRECCION || ''}"
-            data-tel1="${tel1}"
-            data-tel2="${s.TELEFONO2 || ''}"
-            data-tipo="${tipo}"
-            data-estado="${estado}"
-          >Editar</button>
-          <button class="btn btn-sm btn-danger btn-eliminar" data-id="${id}">Eliminar</button>
-        </td>
-      `;
-            tbodySocios.appendChild(tr);
+    function configurarEventos() {
+        formSocio.addEventListener('submit', function (e) {
+            e.preventDefault();
+            guardarSocio();
         });
 
-        asignarEventosAcciones();
-    } catch (err) {
-        console.error(err);
-        alert('No se pudieron cargar los socios');
-    }
-}
-
-// crear / actualizar
-async function guardarSocio(e) {
-    e.preventDefault();
-
-    const id_socio = inputId.value.trim();
-    const nombre_socio = inputNombre.value.trim();
-    const numero_socio = inputNumSocio.value.trim();
-    const fecha_nacimiento = inputFecNac.value || null;
-    const fecha_ingreso = inputFecIng.value || null;
-    const cod_distrito = selectDistrito.value;
-    const desc_direccion = inputDir.value.trim() || null;
-    const telefono1 = inputTel1.value.trim();
-    const telefono2 = inputTel2.value.trim() || null;
-    const tipo_socio = selectTipo.value;
-    const estado_socio = selectEstado.value;
-
-    if (!nombre_socio || !numero_socio || !fecha_ingreso || !cod_distrito || !telefono1 || !tipo_socio || !estado_socio) {
-        alert('Complete los campos obligatorios');
-        return;
-    }
-
-    if (!validarTelefono(telefono1, 'Telefono 1')) return;
-    if (telefono2 && !validarTelefono(telefono2, 'Telefono 2')) return;
-
-    const accion = id_socio ? 'actualizar' : 'crear';
-
-    const payload = {
-        accion,
-        nombre_socio,
-        fecha_nacimiento,
-        fecha_ingreso,
-        numero_socio,
-        cod_distrito,
-        desc_direccion,
-        telefono1,
-        telefono2,
-        tipo_socio,
-        estado_socio
-    };
-
-    if (id_socio) {
-        payload.id_socio = id_socio;
-    }
-
-    try {
-        const res = await fetch(`${API_BASE}/socios.php`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const respuesta = await res.json();
-        if (!res.ok || respuesta.ok === false) {
-            throw new Error(respuesta.mensaje || respuesta.error || 'Error al guardar socio');
-        }
-
-        alert(respuesta.mensaje || (id_socio ? 'Socio actualizado correctamente' : 'Socio creado correctamente'));
-
-        formSocio.reset();
-        inputId.value = '';
-        btnGuardar.textContent = 'Guardar socio';
-        cargarSocios();
-    } catch (err) {
-        console.error(err);
-        alert(err.message);
-    }
-}
-
-// editar / eliminar
-function asignarEventosAcciones() {
-    const botonesEditar = document.querySelectorAll('.btn-editar');
-    botonesEditar.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const id = btn.getAttribute('data-id');
-            const nombre = btn.getAttribute('data-nombre');
-            const numero = btn.getAttribute('data-numero');
-            const fecnac = btn.getAttribute('data-fecnac');
-            const fecing = btn.getAttribute('data-fecing');
-            const distrito = btn.getAttribute('data-distrito');
-            const dir = btn.getAttribute('data-dir');
-            const tel1 = btn.getAttribute('data-tel1');
-            const tel2 = btn.getAttribute('data-tel2');
-            const tipo = btn.getAttribute('data-tipo');
-            const estado = btn.getAttribute('data-estado');
-
-            inputId.value = id;
-            inputNombre.value = nombre;
-            inputNumSocio.value = numero;
-            inputFecNac.value = fecnac ? fecnac.substring(0, 10) : '';
-            inputFecIng.value = fecing ? fecing.substring(0, 10) : '';
-            selectDistrito.value = distrito || '';
-            inputDir.value = dir || '';
-            inputTel1.value = tel1 || '';
-            inputTel2.value = tel2 || '';
-            selectTipo.value = tipo || '';
-            selectEstado.value = estado || '';
-
-            btnGuardar.textContent = 'Actualizar socio';
+        btnNuevo.addEventListener('click', function () {
+            limpiarFormulario();
+            actualizarEstadoBotones();
             formSocio.scrollIntoView({ behavior: 'smooth' });
         });
-    });
 
-    const botonesEliminar = document.querySelectorAll('.btn-eliminar');
-    botonesEliminar.forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const id = btn.getAttribute('data-id');
-            if (!confirm('Desea eliminar este socio?')) return;
-
-            const payload = {
-                accion: 'eliminar',
-                id_socio: id
-            };
-
-            try {
-                const res = await fetch(`${API_BASE}/socios.php`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const respuesta = await res.json();
-                if (!res.ok || respuesta.ok === false) {
-                    throw new Error(respuesta.mensaje || respuesta.error || 'Error al eliminar socio');
-                }
-
-                alert(respuesta.mensaje || 'Socio eliminado correctamente');
-                cargarSocios();
-            } catch (err) {
-                console.error(err);
-                alert(err.message);
+        btnEliminar.addEventListener('click', function () {
+            if (!idSocio.value) return;
+            if (confirm('Seguro que desea eliminar este socio?')) {
+                eliminarSocio(idSocio.value);
             }
         });
-    });
-}
+
+        tbodySocios.addEventListener('click', function (e) {
+            const tr = e.target.closest('tr');
+            if (!tr) return;
+            const id = tr.getAttribute('data-id');
+            if (!id) return;
+            editarSocio(id);
+        });
+    }
+
+    async function cargarSocios() {
+        try {
+            const res = await fetch(`${API_BASE}/socios.php`);
+            const data = await leerJSON(res, 'cargarSocios');
+
+            if (!res.ok) throw new Error((data && data.error) || 'Error al cargar socios');
+
+            socios = Array.isArray(data) ? data : [];
+            mostrarSocios(socios);
+        } catch (err) {
+            console.error(err);
+            mostrarAlerta(err.message || 'Error al cargar socios', 'danger');
+        }
+    }
+
+    function mostrarSocios(lista) {
+        tbodySocios.innerHTML = '';
+        lista.forEach(s => {
+            const tr = document.createElement('tr');
+            tr.setAttribute('data-id', s.ID_SOCIO || s.id_socio);
+
+            const id = s.ID_SOCIO || s.id_socio || '';
+            const nom = s.NOMBRE_SOCIO || s.nombre_socio || '';
+            const tel1 = s.TELEFONO1 || s.telefono1 || '';
+            const tipo = s.TIPO_SOCIO || s.tipo_socio || '';
+            const est = s.ESTADO_SOCIO || s.estado_socio || '';
+            const dist = s.NOMBRE_DISTRITO || s.nombre_distrito || '';
+            const cant = s.NOMBRE_CANTON || s.nombre_canton || '';
+            const prov = s.NOMBRE_PROVINCIA || s.nombre_provincia || '';
+
+            tr.innerHTML = `
+                <td>${id}</td>
+                <td>${nom}</td>
+                <td>${tel1}</td>
+                <td>${tipo} - ${textoTipo(tipo)}</td>
+                <td>${est} - ${textoEstado(est)}</td>
+                <td>${dist}${cant || prov ? ' / ' : ''}${cant}${prov ? ' / ' + prov : ''}</td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-warning me-2" onclick="editarSocio(${id})">Editar</button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="eliminarSocio(${id})">Eliminar</button>
+                </td>
+            `;
+            tbodySocios.appendChild(tr);
+        });
+    }
+
+    function cargarSocioEnFormulario(s) {
+        idSocio.value = s.ID_SOCIO || s.id_socio || '';
+        nombreSocio.value = s.NOMBRE_SOCIO || s.nombre_socio || '';
+        fechaNac.value = s.FECHA_NACIMIENTO || s.fecha_nacimiento || '';
+        fechaIngreso.value = s.FECHA_INGRESO || s.fecha_ingreso || '';
+        numeroSocio.value = s.NUMERO_SOCIO || s.numero_socio || '';
+        codDistrito.value = s.COD_DISTRITO || s.cod_distrito || '';
+        descDireccion.value = s.DESC_DIRECCION || s.desc_direccion || '';
+        telefono1.value = s.TELEFONO1 || s.telefono1 || '';
+        telefono2.value = s.TELEFONO2 || s.telefono2 || '';
+        tipoSocio.value = s.TIPO_SOCIO || s.tipo_socio || '';
+        estadoSocio.value = s.ESTADO_SOCIO || s.estado_socio || '';
+    }
+
+    function limpiarFormulario() {
+        formSocio.reset();
+        idSocio.value = '';
+    }
+
+    async function guardarSocio() {
+        const payload = {
+            nombre_socio: nombreSocio.value.trim(),
+            fecha_nacimiento: fechaNac.value || null,
+            fecha_ingreso: fechaIngreso.value,
+            numero_socio: numeroSocio.value ? Number(numeroSocio.value) : null,
+            cod_distrito: codDistrito.value ? Number(codDistrito.value) : null,
+            desc_direccion: descDireccion.value.trim() || null,
+            telefono1: telefono1.value ? Number(telefono1.value) : null,
+            telefono2: telefono2.value ? Number(telefono2.value) : null,
+            tipo_socio: tipoSocio.value,
+            estado_socio: estadoSocio.value
+        };
+
+        if (!payload.nombre_socio || !payload.fecha_ingreso || !payload.numero_socio || !payload.telefono1 || !payload.tipo_socio || !payload.estado_socio) {
+            mostrarAlerta('Complete los campos obligatorios (*)', 'warning');
+            return;
+        }
+
+        try {
+            const esEdicion = !!idSocio.value;
+            const url = esEdicion
+                ? `${API_BASE}/socios.php?id=${idSocio.value}`
+                : `${API_BASE}/socios.php`;
+            const method = esEdicion ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await leerJSON(res, 'guardarSocio');
+
+            if (!res.ok || (data && data.ok === false)) {
+                const msg = data && data.error;
+                throw new Error(msg || 'Error al guardar socio');
+            }
+
+            mostrarAlerta(`Socio ${esEdicion ? 'actualizado' : 'creado'} correctamente`, 'success');
+            limpiarFormulario();
+            await cargarSocios();
+            actualizarEstadoBotones();
+        } catch (err) {
+            console.error(err);
+            mostrarAlerta(err.message || 'Error al guardar socio', 'danger');
+        }
+    }
+
+    async function eliminarSocio(id) {
+        if (!id) return;
+        if (!confirm('Seguro que desea eliminar este socio?')) return;
+
+        try {
+            const res = await fetch(`${API_BASE}/socios.php?id=${id}`, { method: 'DELETE' });
+            let data = null;
+            if (res.status !== 204) data = await leerJSON(res, 'eliminarSocio');
+
+            if (!res.ok) {
+                const msg = data && data.error;
+                throw new Error(msg || 'Error al eliminar socio');
+            }
+
+            mostrarAlerta('Socio eliminado correctamente', 'success');
+            if (String(id) === idSocio.value) {
+                limpiarFormulario();
+                actualizarEstadoBotones();
+            }
+            await cargarSocios();
+        } catch (err) {
+            console.error(err);
+            mostrarAlerta(err.message || 'Error al eliminar socio', 'danger');
+        }
+    }
+
+    async function cargarDistritos() {
+        try {
+            const res = await fetch(`${API_BASE}/distritos.php`);
+            const data = await leerJSON(res, 'cargarDistritos');
+            if (!res.ok) throw new Error('Error al cargar distritos');
+
+            codDistrito.innerHTML = '<option value="">Seleccione...</option>';
+            (data || []).forEach(d => {
+                const val = d.COD_DISTRITO || d.id_distrito;
+                const dist = d.NOMBRE_DISTRITO || d.nombre_distrito || '';
+                const cant = d.NOMBRE_CANTON || d.nombre_canton || '';
+                if (!val) return;
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = dist + (cant ? ' - ' + cant : '');
+                codDistrito.appendChild(opt);
+            });
+        } catch (err) {
+            console.error(err);
+            mostrarAlerta('Error al cargar distritos', 'danger');
+        }
+    }
+
+    function actualizarEstadoBotones() {
+        const tieneId = !!idSocio.value;
+        btnGuardar.textContent = tieneId ? 'Actualizar' : 'Guardar';
+        btnEliminar.disabled = !tieneId;
+    }
+
+    function mostrarAlerta(msg, tipo) {
+        const anterior = document.querySelector('.alert');
+        if (anterior) anterior.remove();
+
+        const div = document.createElement('div');
+        div.className = `alert alert-${tipo} alert-dismissible fade show mt-3`;
+        div.role = 'alert';
+        div.innerHTML = `
+            ${msg}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+
+        const container = document.querySelector('main');
+        container.insertBefore(div, container.firstChild);
+
+        setTimeout(() => {
+            if (div.parentNode === container) div.remove();
+        }, 5000);
+    }
+
+    // globales
+    window.editarSocio = async function (id) {
+        try {
+            const res = await fetch(`${API_BASE}/socios.php?id=${id}`);
+            const data = await leerJSON(res, 'detalleSocio');
+            if (!res.ok) throw new Error((data && data.error) || 'Error al obtener socio');
+
+            cargarSocioEnFormulario(data || {});
+            actualizarEstadoBotones();
+            formSocio.scrollIntoView({ behavior: 'smooth' });
+        } catch (err) {
+            console.error(err);
+            mostrarAlerta(err.message || 'No se pudo cargar el socio', 'danger');
+        }
+    };
+
+    window.eliminarSocio = eliminarSocio;
+});
