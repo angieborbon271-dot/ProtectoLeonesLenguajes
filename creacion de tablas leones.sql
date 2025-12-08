@@ -56,7 +56,7 @@ tc_venta 	NUMBER(8,2) NOT NULL
 
 
 --HU-05: Tipos de Actividad 
---Tabla: Tipo_actividad 
+--Tabla: Tipo_actividad
 CREATE TABLE TIPO_ACTIVIDAD (
 id_tip_actividad 	NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 nombre_tip_actividad 	VARCHAR2(100) NOT NULL,
