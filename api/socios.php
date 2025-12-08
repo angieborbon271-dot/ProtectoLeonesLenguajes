@@ -1,51 +1,67 @@
 <?php
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=UTF-8');
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
-require_once 'api/db.php';
+require_once 'db.php';
 
+$conn   = getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
-$id = isset($_GET['id']) ? $_GET['id'] : null;
+$id     = isset($_GET['id']) ? $_GET['id'] : null;
 
-// Get request data
 $data = json_decode(file_get_contents('php://input'), true);
+if (!is_array($data)) $data = [];
 
-function getSocioData($stid) {
-    oci_fetch_all($stid, $row, 0, -1, OCI_FETCHSTATEMENT_BY_ROW);
-    if (empty($row)) return null;
-    
-    $socio = $row[0];
+function getSocioData($stid)
+{
+    $rows = [];
+    oci_fetch_all($stid, $rows, 0, -1, OCI_FETCHSTATEMENT_BY_ROW);
+    if (empty($rows)) return null;
+
+    $s = $rows[0];
+
     return [
-        'id_socio' => $socio['ID_SOCIO'],
-        'cedula' => $socio['CEDULA'],
-        'nombre' => $socio['NOMBRE'],
-        'apellido1' => $socio['APELLIDO1'],
-        'apellido2' => $socio['APELLIDO2'] ?? '',
-        'fec_nacimiento' => $socio['FEC_NACIMIENTO'],
-        'genero' => $socio['GENERO'],
-        'estado_civil' => $socio['ESTADO_CIVIL'],
-        'profesion' => $socio['PROFESION'] ?? '',
-        'telefono1' => $socio['TELEFONO1'],
-        'telefono2' => $socio['TELEFONO2'] ?? '',
-        'correo_electronico' => $socio['CORREO_ELECTRONICO'],
-        'id_distrito' => $socio['ID_DISTRITO'],
-        'direccion_exacta' => $socio['DIRECCION_EXACTA'],
-        'id_tipo_socio' => $socio['ID_TIPO_SOCIO'],
-        'id_estado_socio' => $socio['ID_ESTADO_SOCIO']
+        'id_socio'           => $s['ID_SOCIO'],
+        'cedula'             => $s['CEDULA'] ?? null,              // si la usas
+        'nombre'             => $s['NOMBRE_SOCIO'] ?? $s['NOMBRE'] ?? null,
+        'apellido1'          => $s['APELLIDO1'] ?? null,           // si luego agregas campos
+        'apellido2'          => $s['APELLIDO2'] ?? null,
+        'fec_nacimiento'     => $s['FECHA_NACIMIENTO'] ?? $s['FEC_NACIMIENTO'] ?? null,
+        'fec_ingreso'        => $s['FECHA_INGRESO'] ?? $s['FEC_INGRESO'] ?? null,
+        'genero'             => $s['GENERO'] ?? null,
+        'estado_civil'       => $s['ESTADO_CIVIL'] ?? null,
+        'profesion'          => $s['PROFESION'] ?? null,
+        'telefono1'          => $s['TELEFONO1'] ?? null,
+        'telefono2'          => $s['TELEFONO2'] ?? null,
+        'correo_electronico' => $s['CORREO_ELECTRONICO'] ?? null,
+        'id_distrito'        => $s['COD_DISTRITO'] ?? $s['ID_DISTRITO'] ?? null,
+        'direccion_exacta'   => $s['DESC_DIRECCION'] ?? $s['DIRECCION_EXACTA'] ?? null,
+        // en tu modelo tipo y estado son char(1) en la misma tabla
+        'id_tipo_socio'      => $s['TIPO_SOCIO'] ?? null,
+        'id_estado_socio'    => $s['ESTADO_SOCIO'] ?? null,
+        'tipo_socio'         => $s['TIPO_SOCIO'] ?? null,
+        'estado_socio'       => $s['ESTADO_SOCIO'] ?? null
     ];
 }
 
 switch ($method) {
+
+    // GET
     case 'GET':
         if ($id) {
-            // Get single socio
-            $sql = "SELECT * FROM SOCIOS WHERE ID_SOCIO = :id";
+            // detalle de un socio
+            $sql  = "SELECT * FROM socios WHERE id_socio = :id";
             $stid = oci_parse($conn, $sql);
             oci_bind_by_name($stid, ':id', $id);
-            oci_execute($stid);
-            
+
+            if (!@oci_execute($stid)) {
+                $e = oci_error($stid);
+                http_response_code(500);
+                echo json_encode(['error' => $e['message']]);
+                break;
+            }
+
             $socio = getSocioData($stid);
             if ($socio) {
                 echo json_encode($socio);
@@ -53,202 +69,205 @@ switch ($method) {
                 http_response_code(404);
                 echo json_encode(['error' => 'Socio no encontrado']);
             }
-        } else {
-            // Get all socios
-            $sql = "SELECT s.*, 
-                           ts.NOMBRE as TIPO_SOCIO,
-                           es.NOMBRE as ESTADO_SOCIO,
-                           d.NOMBRE_DISTRITO as DISTRITO,
-                           c.NOMBRE_CANTON as CANTON,
-                           p.NOMBRE_PROVINCIA as PROVINCIA
-                    FROM SOCIOS s
-                    LEFT JOIN TIPOS_SOCIO ts ON s.ID_TIPO_SOCIO = ts.ID_TIPO_SOCIO
-                    LEFT JOIN ESTADOS_SOCIO es ON s.ID_ESTADO_SOCIO = es.ID_ESTADO_SOCIO
-                    LEFT JOIN DISTRITOS d ON s.ID_DISTRITO = d.ID_DISTRITO
-                    LEFT JOIN CANTONES c ON d.ID_CANTON = c.ID_CANTON
-                    LEFT JOIN PROVINCIAS p ON c.ID_PROVINCIA = p.ID_PROVINCIA
-                    ORDER BY s.APELLIDO1, s.APELLIDO2, s.NOMBRE";
-            $stid = oci_parse($conn, $sql);
-            oci_execute($stid);
-            
-            $socios = [];
-            while ($row = oci_fetch_assoc($stid)) {
-                $socios[] = [
-                    'id_socio' => $row['ID_SOCIO'],
-                    'cedula' => $row['CEDULA'],
-                    'nombre_completo' => trim("{$row['NOMBRE']} {$row['APELLIDO1']} {$row['APELLIDO2']}"),
-                    'telefono' => $row['TELEFONO1'],
-                    'correo' => $row['CORREO_ELECTRONICO'],
-                    'tipo_socio' => $row['TIPO_SOCIO'],
-                    'estado_socio' => $row['ESTADO_SOCIO'],
-                    'distrito' => $row['DISTRITO'],
-                    'canton' => $row['CANTON'],
-                    'provincia' => $row['PROVINCIA']
-                ];
-            }
-            echo json_encode($socios);
+            break;
         }
+
+        $sql = "SELECT s.id_socio,
+                       s.nombre_socio,
+                       s.telefono1,
+                       s.correo_electronico,
+                       s.tipo_socio,
+                       s.estado_socio,
+                       s.cod_distrito,
+                       d.nombre_distrito,
+                       c.nombre_canton,
+                       p.nombre_provincia
+                FROM socios s
+                LEFT JOIN distritos  d ON s.cod_distrito  = d.cod_distrito
+                LEFT JOIN cantones   c ON d.cod_canton    = c.cod_canton
+                LEFT JOIN provincias p ON d.cod_provincia = p.cod_provincia
+                ORDER BY s.nombre_socio";
+
+        $stid = oci_parse($conn, $sql);
+
+        if (!@oci_execute($stid)) {
+            $e = oci_error($stid);
+            http_response_code(500);
+            echo json_encode(['error' => $e['message']]);
+            break;
+        }
+
+        $socios = [];
+        while ($row = oci_fetch_assoc($stid)) {
+            $socios[] = [
+                'id_socio'        => $row['ID_SOCIO'],
+                'cedula'          => null,
+                'nombre_completo' => $row['NOMBRE_SOCIO'],
+                'telefono'        => $row['TELEFONO1'],
+                'correo'          => $row['CORREO_ELECTRONICO'],
+                'tipo_socio'      => $row['TIPO_SOCIO'],
+                'estado_socio'    => $row['ESTADO_SOCIO'],
+                'distrito'        => $row['NOMBRE_DISTRITO'],
+                'canton'          => $row['NOMBRE_CANTON'],
+                'provincia'       => $row['NOMBRE_PROVINCIA']
+            ];
+        }
+
+        echo json_encode($socios);
         break;
 
+    // POST
     case 'POST':
-        // Create new socio
-        $required = ['cedula', 'nombre', 'apellido1', 'telefono1', 'correo_electronico', 
-                    'id_distrito', 'direccion_exacta', 'id_tipo_socio', 'id_estado_socio'];
-        
-        $missing = array_diff($required, array_keys($data));
-        if (!empty($missing)) {
+        $nombre_socio   = $data['nombre_socio'] ?? ($data['nombre'] ?? null);
+        $fec_nacimiento = $data['fec_nacimiento'] ?? $data['fecha_nacimiento'] ?? null;
+        $fec_ingreso    = $data['fec_ingreso'] ?? $data['fecha_ingreso'] ?? null;
+        $numero_socio   = $data['numero_socio'] ?? null;
+        $cod_distrito   = $data['cod_distrito'] ?? $data['id_distrito'] ?? null;
+        $desc_direccion = $data['desc_direccion'] ?? $data['direccion_exacta'] ?? null;
+        $telefono1      = $data['telefono1'] ?? null;
+        $telefono2      = $data['telefono2'] ?? null;
+        // aqui van los codigos R/C/H/B/L y A/I/N
+        $tipo_socio     = $data['tipo_socio'] ?? $data['id_tipo_socio'] ?? null;
+        $estado_socio   = $data['estado_socio'] ?? $data['id_estado_socio'] ?? null;
+
+        if (!$nombre_socio || !$telefono1 || !$cod_distrito || !$tipo_socio || !$estado_socio) {
             http_response_code(400);
-            echo json_encode(['error' => 'Faltan campos requeridos: ' . implode(', ', $missing)]);
+            echo json_encode(['ok' => false, 'error' => 'Faltan datos obligatorios para crear socio']);
             break;
         }
 
-        $sql = "INSERT INTO SOCIOS (
-            CEDULA, NOMBRE, APELLIDO1, APELLIDO2, FEC_NACIMIENTO, 
-            GENERO, ESTADO_CIVIL, PROFESION, TELEFONO1, TELEFONO2, 
-            CORREO_ELECTRONICO, ID_DISTRITO, DIRECCION_EXACTA, ID_TIPO_SOCIO, ID_ESTADO_SOCIO
-        ) VALUES (
-            :cedula, :nombre, :apellido1, :apellido2, TO_DATE(:fec_nacimiento, 'YYYY-MM-DD'), 
-            :genero, :estado_civil, :profesion, :telefono1, :telefono2, 
-            :correo_electronico, :id_distrito, :direccion_exacta, :id_tipo_socio, :id_estado_socio
-        ) RETURNING ID_SOCIO INTO :id";
+        $plsql = "BEGIN insertar_socio(
+                    :p_nombre_socio,
+                    :p_fecha_nacimiento,
+                    :p_fecha_ingreso,
+                    :p_numero_socio,
+                    :p_cod_distrito,
+                    :p_desc_direccion,
+                    :p_telefono1,
+                    :p_telefono2,
+                    :p_tipo_socio,
+                    :p_estado_socio
+                  ); END;";
 
-        $stid = oci_parse($conn, $sql);
-        
-        // Bind parameters
-        $id_socio = null;
-        oci_bind_by_name($stid, ':id', $id_socio, 32);
-        oci_bind_by_name($stid, ':cedula', $data['cedula']);
-        oci_bind_by_name($stid, ':nombre', $data['nombre']);
-        oci_bind_by_name($stid, ':apellido1', $data['apellido1']);
-        oci_bind_by_name($stid, ':apellido2', $data['apellido2'] ?? '');
-        oci_bind_by_name($stid, ':fec_nacimiento', $data['fec_nacimiento'] ?? null);
-        oci_bind_by_name($stid, ':genero', $data['genero'] ?? null);
-        oci_bind_by_name($stid, ':estado_civil', $data['estado_civil'] ?? null);
-        oci_bind_by_name($stid, ':profesion', $data['profesion'] ?? '');
-        oci_bind_by_name($stid, ':telefono1', $data['telefono1']);
-        oci_bind_by_name($stid, ':telefono2', $data['telefono2'] ?? '');
-        oci_bind_by_name($stid, ':correo_electronico', $data['correo_electronico']);
-        oci_bind_by_name($stid, ':id_distrito', $data['id_distrito']);
-        oci_bind_by_name($stid, ':direccion_exacta', $data['direccion_exacta']);
-        oci_bind_by_name($stid, ':id_tipo_socio', $data['id_tipo_socio']);
-        oci_bind_by_name($stid, ':id_estado_socio', $data['id_estado_socio']);
+        $stid = oci_parse($conn, $plsql);
+        oci_bind_by_name($stid, ':p_nombre_socio',    $nombre_socio);
+        oci_bind_by_name($stid, ':p_fecha_nacimiento', $fec_nacimiento);
+        oci_bind_by_name($stid, ':p_fecha_ingreso',   $fec_ingreso);
+        oci_bind_by_name($stid, ':p_numero_socio',    $numero_socio);
+        oci_bind_by_name($stid, ':p_cod_distrito',    $cod_distrito);
+        oci_bind_by_name($stid, ':p_desc_direccion',  $desc_direccion);
+        oci_bind_by_name($stid, ':p_telefono1',       $telefono1);
+        oci_bind_by_name($stid, ':p_telefono2',       $telefono2);
+        oci_bind_by_name($stid, ':p_tipo_socio',      $tipo_socio);
+        oci_bind_by_name($stid, ':p_estado_socio',    $estado_socio);
 
-        if (oci_execute($stid)) {
-            $data['id_socio'] = $id_socio;
-            http_response_code(201);
-            echo json_encode($data);
-        } else {
+        if (!@oci_execute($stid)) {
             $e = oci_error($stid);
-            http_response_code(500);
-            echo json_encode(['error' => $e['message']]);
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => $e['message']]);
+        } else {
+            echo json_encode(['ok' => true, 'mensaje' => 'Socio creado correctamente']);
         }
         break;
 
+    //actualizar_socio
     case 'PUT':
-        // Update socio
         if (!$id) {
             http_response_code(400);
-            echo json_encode(['error' => 'ID de socio no especificado']);
+            echo json_encode(['ok' => false, 'error' => 'ID de socio no especificado']);
             break;
         }
 
-        $sql = "UPDATE SOCIOS SET 
-                CEDULA = :cedula,
-                NOMBRE = :nombre,
-                APELLIDO1 = :apellido1,
-                APELLIDO2 = :apellido2,
-                FEC_NACIMIENTO = TO_DATE(:fec_nacimiento, 'YYYY-MM-DD'),
-                GENERO = :genero,
-                ESTADO_CIVIL = :estado_civil,
-                PROFESION = :profesion,
-                TELEFONO1 = :telefono1,
-                TELEFONO2 = :telefono2,
-                CORREO_ELECTRONICO = :correo_electronico,
-                ID_DISTRITO = :id_distrito,
-                DIRECCION_EXACTA = :direccion_exacta,
-                ID_TIPO_SOCIO = :id_tipo_socio,
-                ID_ESTADO_SOCIO = :id_estado_socio
-                WHERE ID_SOCIO = :id";
+        $nombre_socio   = $data['nombre_socio'] ?? ($data['nombre'] ?? null);
+        $fec_nacimiento = $data['fec_nacimiento'] ?? $data['fecha_nacimiento'] ?? null;
+        $fec_ingreso    = $data['fec_ingreso'] ?? $data['fecha_ingreso'] ?? null;
+        $numero_socio   = $data['numero_socio'] ?? null;
+        $cod_distrito   = $data['cod_distrito'] ?? $data['id_distrito'] ?? null;
+        $desc_direccion = $data['desc_direccion'] ?? $data['direccion_exacta'] ?? null;
+        $telefono1      = $data['telefono1'] ?? null;
+        $telefono2      = $data['telefono2'] ?? null;
+        $tipo_socio     = $data['tipo_socio'] ?? $data['id_tipo_socio'] ?? null;
+        $estado_socio   = $data['estado_socio'] ?? $data['id_estado_socio'] ?? null;
 
-        $stid = oci_parse($conn, $sql);
-        
-        // Bind parameters
-        oci_bind_by_name($stid, ':id', $id);
-        oci_bind_by_name($stid, ':cedula', $data['cedula']);
-        oci_bind_by_name($stid, ':nombre', $data['nombre']);
-        oci_bind_by_name($stid, ':apellido1', $data['apellido1']);
-        oci_bind_by_name($stid, ':apellido2', $data['apellido2'] ?? '');
-        oci_bind_by_name($stid, ':fec_nacimiento', $data['fec_nacimiento'] ?? null);
-        oci_bind_by_name($stid, ':genero', $data['genero'] ?? null);
-        oci_bind_by_name($stid, ':estado_civil', $data['estado_civil'] ?? null);
-        oci_bind_by_name($stid, ':profesion', $data['profesion'] ?? '');
-        oci_bind_by_name($stid, ':telefono1', $data['telefono1']);
-        oci_bind_by_name($stid, ':telefono2', $data['telefono2'] ?? '');
-        oci_bind_by_name($stid, ':correo_electronico', $data['correo_electronico']);
-        oci_bind_by_name($stid, ':id_distrito', $data['id_distrito']);
-        oci_bind_by_name($stid, ':direccion_exacta', $data['direccion_exacta']);
-        oci_bind_by_name($stid, ':id_tipo_socio', $data['id_tipo_socio']);
-        oci_bind_by_name($stid, ':id_estado_socio', $data['id_estado_socio']);
+        if (!$nombre_socio || !$telefono1 || !$cod_distrito || !$tipo_socio || !$estado_socio) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'Faltan datos obligatorios para actualizar socio']);
+            break;
+        }
 
-        if (oci_execute($stid)) {
-            if (oci_num_rows($stid) > 0) {
-                $data['id_socio'] = $id;
-                echo json_encode($data);
-            } else {
-                http_response_code(404);
-                echo json_encode(['error' => 'Socio no encontrado']);
-            }
-        } else {
+        $plsql = "BEGIN actualizar_socio(
+                    :p_id_socio,
+                    :p_nombre_socio,
+                    :p_fecha_nacimiento,
+                    :p_fecha_ingreso,
+                    :p_numero_socio,
+                    :p_cod_distrito,
+                    :p_desc_direccion,
+                    :p_telefono1,
+                    :p_telefono2,
+                    :p_tipo_socio,
+                    :p_estado_socio
+                  ); END;";
+
+        $stid = oci_parse($conn, $plsql);
+        oci_bind_by_name($stid, ':p_id_socio',         $id);
+        oci_bind_by_name($stid, ':p_nombre_socio',     $nombre_socio);
+        oci_bind_by_name($stid, ':p_fecha_nacimiento', $fec_nacimiento);
+        oci_bind_by_name($stid, ':p_fecha_ingreso',    $fec_ingreso);
+        oci_bind_by_name($stid, ':p_numero_socio',     $numero_socio);
+        oci_bind_by_name($stid, ':p_cod_distrito',     $cod_distrito);
+        oci_bind_by_name($stid, ':p_desc_direccion',   $desc_direccion);
+        oci_bind_by_name($stid, ':p_telefono1',        $telefono1);
+        oci_bind_by_name($stid, ':p_telefono2',        $telefono2);
+        oci_bind_by_name($stid, ':p_tipo_socio',       $tipo_socio);
+        oci_bind_by_name($stid, ':p_estado_socio',     $estado_socio);
+
+        if (!@oci_execute($stid)) {
             $e = oci_error($stid);
-            http_response_code(500);
-            echo json_encode(['error' => $e['message']]);
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => $e['message']]);
+        } else {
+            echo json_encode(['ok' => true, 'mensaje' => 'Socio actualizado correctamente']);
         }
         break;
 
+    //eliminar_socio
     case 'DELETE':
-        // Delete socio
         if (!$id) {
             http_response_code(400);
-            echo json_encode(['error' => 'ID de socio no especificado']);
+            echo json_encode(['ok' => false, 'error' => 'ID de socio no especificado']);
             break;
         }
 
-        // Check for related records before deleting
-        $check_sql = "SELECT COUNT(*) as total FROM PAGOS WHERE ID_SOCIO = :id";
-        $stid = oci_parse($conn, $check_sql);
+        $check_sql = "SELECT COUNT(*) AS total FROM pagos WHERE id_socio = :id";
+        $stid      = oci_parse($conn, $check_sql);
         oci_bind_by_name($stid, ':id', $id);
         oci_execute($stid);
         $row = oci_fetch_assoc($stid);
-        
-        if ($row['TOTAL'] > 0) {
+
+        if (!empty($row['TOTAL']) && $row['TOTAL'] > 0) {
             http_response_code(400);
-            echo json_encode(['error' => 'No se puede eliminar el socio porque tiene pagos asociados']);
+            echo json_encode(['ok' => false, 'error' => 'No se puede eliminar el socio porque tiene pagos asociados']);
             break;
         }
 
-        $sql = "DELETE FROM SOCIOS WHERE ID_SOCIO = :id";
-        $stid = oci_parse($conn, $sql);
-        oci_bind_by_name($stid, ':id', $id);
+        $plsql = "BEGIN eliminar_socio(:p_id_socio); END;";
+        $stid  = oci_parse($conn, $plsql);
+        oci_bind_by_name($stid, ':p_id_socio', $id);
 
-        if (oci_execute($stid)) {
-            if (oci_num_rows($stid) > 0) {
-                http_response_code(204); // No Content
-            } else {
-                http_response_code(404);
-                echo json_encode(['error' => 'Socio no encontrado']);
-            }
-        } else {
+        if (!@oci_execute($stid)) {
             $e = oci_error($stid);
-            http_response_code(500);
-            echo json_encode(['error' => $e['message']]);
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => $e['message']]);
+        } else {
+            http_response_code(204);
         }
         break;
 
     default:
         http_response_code(405);
-        echo json_encode(['error' => 'Método no permitido']);
+        echo json_encode(['ok' => false, 'error' => 'Metodo no permitido']);
         break;
 }
 
 oci_close($conn);
-?>

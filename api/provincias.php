@@ -24,10 +24,8 @@ if ($method === 'GET') {
     while ($row = oci_fetch_assoc($stid)) {
         $provincias[] = $row;
     }
-
-    // Depuración: Mostrar las provincias en el log del servidor
     error_log('Provincias obtenidas: ' . print_r($provincias, true));
-    
+
     echo json_encode($provincias);
     exit;
 }
